@@ -2,8 +2,12 @@ import React from 'react';
 import { ArrowRight, Sparkles, Palette, Code, Megaphone, Bot, Mail, MessageSquare } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const About: React.FC = () => {
+  const { aboutContent } = useAuth();
+  const marqueeTags = aboutContent.marqueeTags.split(',').map(tag => tag.trim());
+
   return (
     <div className="w-full bg-white text-gray-900 font-sans">
       <style>{`
@@ -21,12 +25,11 @@ const About: React.FC = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="flex-1 space-y-8">
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] uppercase text-gray-950">
-              Hi, We're RIC <br />
-              Tanzania. <br />
-              A Digital <br />
-              Agency <br />
-              Based in <span className="text-gray-900">Dar</span> <br />
-              <span className="text-gray-900">es Salaam</span>
+              {aboutContent.heroTitleLine1} <br />
+              {aboutContent.heroTitleLine2} <br />
+              {aboutContent.heroTitleLine3} <br />
+              {aboutContent.heroTitleLine4} <br />
+              {aboutContent.heroTitleLine5} <span className="text-gray-900">{aboutContent.heroTitleLocation}</span>
             </h1>
             
             <div className="flex items-center space-x-3 text-xs md:text-sm font-bold tracking-widest uppercase mt-4 text-gray-900">
@@ -37,7 +40,7 @@ const About: React.FC = () => {
 
             <div className="flex flex-wrap gap-4 pt-4">
               <Button asChild className="rounded-md bg-gray-950 text-white hover:bg-gray-800 px-8 py-6 text-sm font-bold uppercase tracking-wide">
-                <a href="#contact">Get a project?</a>
+                <Link to="/contact">Get a project?</Link>
               </Button>
               <Button asChild variant="outline" className="rounded-md border-gray-200 px-8 py-6 text-sm font-bold uppercase tracking-wide hover:bg-gray-50 bg-white text-gray-900">
                 <Link to="/contact">Let's talk.</Link>
@@ -48,7 +51,7 @@ const About: React.FC = () => {
           <div className="flex-1 flex justify-center md:justify-end relative">
              <div className="w-72 h-72 md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] rounded-full overflow-hidden relative z-10 border-4 border-white shadow-2xl">
                 <img 
-                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
+                  src={aboutContent.heroImage} 
                   alt="RIC Tanzania Team" 
                   className="w-full h-full object-cover"
                 />
@@ -64,13 +67,9 @@ const About: React.FC = () => {
         <div className="flex w-max animate-marquee whitespace-nowrap text-sm font-bold tracking-widest uppercase">
           {[...Array(10)].map((_, i) => (
             <React.Fragment key={i}>
-              <span className="mx-6">● Design</span>
-              <span className="mx-6">● Branding</span>
-              <span className="mx-6">● Development</span>
-              <span className="mx-6">● Strategy</span>
-              <span className="mx-6">● Product Design</span>
-              <span className="mx-6">● Motion Graphics</span>
-              <span className="mx-6">● AI Solutions</span>
+                {marqueeTags.map((tag, idx) => (
+                    <span key={idx} className="mx-6">● {tag}</span>
+                ))}
             </React.Fragment>
           ))}
         </div>
@@ -80,27 +79,27 @@ const About: React.FC = () => {
       <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-2 gap-16 mb-20">
           <div>
-            <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">RIC Tanzania</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">{aboutContent.introLabel}</div>
             <h2 className="text-4xl md:text-5xl font-bold leading-tight text-gray-900">
-              Leading digital agency and creative director.
+              {aboutContent.introTitle}
             </h2>
           </div>
           <div className="space-y-8">
             <p className="text-gray-600 text-lg leading-relaxed">
-              We empower Tanzanian businesses with world-class digital solutions. From brand identity to cutting-edge AI automation, we combine international best practices with deep local market knowledge.
+              {aboutContent.introDescription}
             </p>
             <div className="grid grid-cols-3 gap-8">
               <div>
-                <div className="text-xs font-bold uppercase text-gray-400 mb-1">Location</div>
-                <div className="font-bold text-gray-900">Dar es Salaam</div>
+                <div className="text-xs font-bold uppercase text-gray-400 mb-1">{aboutContent.introStat1Label}</div>
+                <div className="font-bold text-gray-900">{aboutContent.introStat1Value}</div>
               </div>
               <div>
-                <div className="text-xs font-bold uppercase text-gray-400 mb-1">Experience</div>
-                <div className="font-bold text-gray-900">5+ Years</div>
+                <div className="text-xs font-bold uppercase text-gray-400 mb-1">{aboutContent.introStat2Label}</div>
+                <div className="font-bold text-gray-900">{aboutContent.introStat2Value}</div>
               </div>
               <div>
-                <div className="text-xs font-bold uppercase text-gray-400 mb-1">Since</div>
-                <div className="font-bold text-gray-900">2019</div>
+                <div className="text-xs font-bold uppercase text-gray-400 mb-1">{aboutContent.introStat3Label}</div>
+                <div className="font-bold text-gray-900">{aboutContent.introStat3Value}</div>
               </div>
             </div>
           </div>
@@ -109,16 +108,16 @@ const About: React.FC = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 border border-gray-200 divide-y md:divide-y-0 md:divide-x divide-gray-200">
            <div className="p-12 lg:p-16 text-center">
-              <div className="text-6xl font-bold mb-4 text-gray-900">5+</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-gray-500">Years of Experience</div>
+              <div className="text-6xl font-bold mb-4 text-gray-900">{aboutContent.bigStat1Value}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-500">{aboutContent.bigStat1Label}</div>
            </div>
            <div className="p-12 lg:p-16 text-center bg-black text-white">
-              <div className="text-6xl font-bold mb-4">150+</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-gray-400">Projects Completed</div>
+              <div className="text-6xl font-bold mb-4">{aboutContent.bigStat2Value}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400">{aboutContent.bigStat2Label}</div>
            </div>
            <div className="p-12 lg:p-16 text-center">
-              <div className="text-6xl font-bold mb-4 text-gray-900">80+</div>
-              <div className="text-xs font-bold uppercase tracking-widest text-gray-500">Happy Clients</div>
+              <div className="text-6xl font-bold mb-4 text-gray-900">{aboutContent.bigStat3Value}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-500">{aboutContent.bigStat3Label}</div>
            </div>
         </div>
       </section>
@@ -130,16 +129,16 @@ const About: React.FC = () => {
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-5 h-5 text-gray-900" />
               </div>
-              <h2 className="text-4xl font-bold mb-4 text-gray-900">Services</h2>
-              <p className="text-gray-500 uppercase tracking-widest text-sm font-medium">Expertise & Capabilities</p>
+              <h2 className="text-4xl font-bold mb-4 text-gray-900">{aboutContent.servicesTitle}</h2>
+              <p className="text-gray-500 uppercase tracking-widest text-sm font-medium">{aboutContent.servicesSubtitle}</p>
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { icon: Palette, title: "Design & Creative", desc: "Crafting visually stunning designs that connect with your audience." },
-                { icon: Code, title: "Development", desc: "Building digital experiences with the latest technology and best practices." },
-                { icon: Megaphone, title: "Strategy", desc: "Data-driven strategies to grow your brand and reach your goals." },
-                { icon: Bot, title: "AI Solutions", desc: "Leveraging AI to automate and optimize your business processes." },
+                { icon: Palette, title: aboutContent.service1Title, desc: aboutContent.service1Desc },
+                { icon: Code, title: aboutContent.service2Title, desc: aboutContent.service2Desc },
+                { icon: Megaphone, title: aboutContent.service3Title, desc: aboutContent.service3Desc },
+                { icon: Bot, title: aboutContent.service4Title, desc: aboutContent.service4Desc },
               ].map((s, i) => (
                 <div key={i} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:border-gray-200 hover:shadow-md transition duration-300">
                    <s.icon className="w-8 h-8 mb-6 text-gray-900" />
@@ -157,16 +156,16 @@ const About: React.FC = () => {
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-5 h-5 text-gray-900" />
             </div>
-            <h2 className="text-4xl font-bold mb-4 text-gray-900">Recognition</h2>
-            <p className="text-gray-500 uppercase tracking-widest text-sm font-medium">Achievements & Milestones</p>
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">{aboutContent.recognitionTitle}</h2>
+            <p className="text-gray-500 uppercase tracking-widest text-sm font-medium">{aboutContent.recognitionSubtitle}</p>
          </div>
 
          <div className="space-y-4">
             {[
-              { id: 1, title: "Top Digital Agency Tanzania", category: "Business", year: "2024" },
-              { id: 2, title: "Best Social Media Campaign", category: "Marketing", year: "2023" },
-              { id: 3, title: "Excellence in Web Development", category: "Design", year: "2023" },
-              { id: 4, title: "Innovation in AI Solutions", category: "Technology", year: "2024" },
+              { id: 1, title: aboutContent.award1Title, category: aboutContent.award1Category, year: aboutContent.award1Year },
+              { id: 2, title: aboutContent.award2Title, category: aboutContent.award2Category, year: aboutContent.award2Year },
+              { id: 3, title: aboutContent.award3Title, category: aboutContent.award3Category, year: aboutContent.award3Year },
+              { id: 4, title: aboutContent.award4Title, category: aboutContent.award4Category, year: aboutContent.award4Year },
             ].map((award) => (
               <div key={award.id} className="group flex items-center justify-between p-6 md:p-8 bg-white border border-gray-100 rounded-2xl hover:border-gray-300 transition-all duration-300 hover:shadow-sm cursor-default">
                  <div className="flex items-center gap-6 md:gap-8">
@@ -189,7 +188,7 @@ const About: React.FC = () => {
          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-8 text-3xl shadow-sm">👋</div>
             <h2 className="text-4xl md:text-5xl font-bold mb-10 tracking-tight text-gray-900">
-              Tell me about your next project
+              {aboutContent.ctaTitle}
             </h2>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild className="rounded-md px-8 py-6 text-base bg-gray-900 text-white hover:bg-gray-800">
@@ -198,7 +197,7 @@ const About: React.FC = () => {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="rounded-md px-8 py-6 text-base bg-white text-gray-900 border-gray-200 hover:bg-gray-50">
-                 <a href="https://wa.me/255XXXXXXXXX" target="_blank" rel="noopener noreferrer">
+                 <a href={`https://wa.me/${useAuth().settings.companyPhone.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer">
                    <MessageSquare className="mr-2 h-5 w-5" /> WhatsApp
                  </a>
               </Button>

@@ -1,7 +1,21 @@
 import React from 'react';
-import { ShoppingCart, MessageCircle, MessageSquare } from 'lucide-react';
+import { ShoppingCart, MessageCircle, MessageSquare, Palette, Share2, Globe, Radio, Zap } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 const Services: React.FC = () => {
+  const { services, servicesContent } = useAuth();
+
+  // Icon Map for rendering Lucide components from string names
+  const iconMap: any = {
+    Palette: Palette,
+    Share2: Share2,
+    Globe: Globe,
+    Radio: Radio,
+    Zap: Zap,
+    '🆕': MessageSquare
+  };
+
   return (
     <div className="w-full bg-white pb-20 font-sans text-gray-900">
       {/* Hero Section */}
@@ -10,12 +24,11 @@ const Services: React.FC = () => {
           <div className="inline-block px-4 py-1.5 bg-gray-100 rounded-full text-sm font-medium text-gray-900 mb-8">
             Ready Services
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold mb-8 text-gray-900 tracking-tight leading-[1.1]">
-            Services that <br className="hidden md:block" />
-            work like a Partner
+          <h1 className="text-5xl md:text-6xl font-bold mb-8 text-gray-900 tracking-tight leading-[1.1] whitespace-pre-wrap">
+            {servicesContent.heroTitle}
           </h1>
-          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Great businesses deserve solutions that do it all, from creating brands and digital presence to helping you market and grow.
+          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed whitespace-pre-wrap">
+            {servicesContent.heroDescription}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button className="bg-black text-white px-8 py-3.5 rounded-lg text-sm font-semibold hover:bg-gray-800 transition-colors w-full sm:w-auto shadow-sm">
@@ -51,140 +64,43 @@ const Services: React.FC = () => {
            <p className="text-gray-600 max-w-2xl mx-auto text-lg">Purchase instantly with mobile money and get started right away</p>
         </div>
 
-        {/* Standard Services Grid */}
+        {/* Standard Services Grid (Dynamic from Context) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-24">
-          {/* Card 1 */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col hover:border-gray-300 transition-all hover:shadow-md">
-            <div className="flex justify-between items-start mb-6">
-                 <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">🎨</span>
-                 </div>
-                 <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Design</span>
-            </div>
-            
-            <h3 className="text-xl font-bold mb-2 text-gray-900">Logo Design</h3>
-            <p className="text-gray-500 text-sm mb-6 flex-grow leading-relaxed">Professional brand identity and logo creation that makes you memorable.</p>
-            
-            <div className="pt-4 border-t border-gray-50 mt-auto">
-                <div className="mb-4">
-                  <span className="text-sm text-gray-500">From </span>
-                  <span className="text-xl font-bold text-gray-900">200,000 TZS</span>
+          {services.map((service) => {
+            const IconComponent = iconMap[service.icon] || MessageSquare;
+            return (
+              <div key={service.id} className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col hover:border-gray-300 transition-all hover:shadow-md">
+                <div className="flex justify-between items-start mb-6">
+                    <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-900">
+                        <IconComponent size={24} />
+                    </div>
+                    <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">{service.tag}</span>
                 </div>
-                <button className="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-800 transition">
-                  <ShoppingCart size={16} />
-                  <span>Buy Now</span>
-                </button>
-                <p className="text-center text-xs text-gray-400 mt-2 font-medium">Pay with Mobile Money</p>
-            </div>
-          </div>
-
-          {/* Card 2 */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col hover:border-gray-300 transition-all hover:shadow-md">
-            <div className="flex justify-between items-start mb-6">
-                 <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">🔗</span>
-                 </div>
-                 <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Marketing</span>
-            </div>
-
-            <h3 className="text-xl font-bold mb-2 text-gray-900">Social Media Mgmt</h3>
-            <p className="text-gray-500 text-sm mb-6 flex-grow leading-relaxed">Complete social media strategy, content creation, and community management.</p>
-            
-            <div className="pt-4 border-t border-gray-50 mt-auto">
-                <div className="mb-4">
-                  <span className="text-sm text-gray-500">From </span>
-                  <span className="text-xl font-bold text-gray-900">300,000 TZS</span>
-                  <span className="text-xs text-gray-400">/mo</span>
+                
+                <h3 className="text-xl font-bold mb-2 text-gray-900">{service.title}</h3>
+                <p className="text-gray-500 text-sm mb-6 flex-grow leading-relaxed">{service.description}</p>
+                
+                <div className="pt-4 border-t border-gray-50 mt-auto">
+                    <div className="mb-4">
+                      <span className="text-sm text-gray-500">From </span>
+                      <span className="text-xl font-bold text-gray-900">{service.price}</span>
+                    </div>
+                    <Link to="/client-area" className="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-800 transition">
+                      <ShoppingCart size={16} />
+                      <span>Buy Now</span>
+                    </Link>
+                    <p className="text-center text-xs text-gray-400 mt-2 font-medium">Pay with Mobile Money</p>
                 </div>
-                <button className="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-800 transition">
-                  <ShoppingCart size={16} />
-                  <span>Buy Now</span>
-                </button>
-                <p className="text-center text-xs text-gray-400 mt-2 font-medium">Pay with Mobile Money</p>
-            </div>
-          </div>
-
-          {/* Card 3 */}
-          <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col hover:border-gray-300 transition-all hover:shadow-md">
-             <div className="flex justify-between items-start mb-6">
-                 <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">🌐</span>
-                 </div>
-                 <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Development</span>
-            </div>
-
-            <h3 className="text-xl font-bold mb-2 text-gray-900">Website Creation</h3>
-            <p className="text-gray-500 text-sm mb-6 flex-grow leading-relaxed">Custom responsive website design and development for your business.</p>
-            
-            <div className="pt-4 border-t border-gray-50 mt-auto">
-                <div className="mb-4">
-                  <span className="text-sm text-gray-500">From </span>
-                  <span className="text-xl font-bold text-gray-900">800,000 TZS</span>
-                </div>
-                <button className="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-800 transition">
-                  <ShoppingCart size={16} />
-                  <span>Buy Now</span>
-                </button>
-                <p className="text-center text-xs text-gray-400 mt-2 font-medium">Pay with Mobile Money</p>
-            </div>
-          </div>
-
-           {/* Card 4 */}
-           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col hover:border-gray-300 transition-all hover:shadow-md">
-            <div className="flex justify-between items-start mb-6">
-                 <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">📢</span>
-                 </div>
-                 <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Marketing</span>
-            </div>
-
-            <h3 className="text-xl font-bold mb-2 text-gray-900">Digital Ads</h3>
-            <p className="text-gray-500 text-sm mb-6 flex-grow leading-relaxed">Reach your target audience with data-driven advertising campaigns.</p>
-            
-            <div className="pt-4 border-t border-gray-50 mt-auto">
-                <div className="mb-4">
-                  <span className="text-sm text-gray-500">From </span>
-                  <span className="text-xl font-bold text-gray-900">250,000 TZS</span>
-                </div>
-                <button className="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-800 transition">
-                  <ShoppingCart size={16} />
-                  <span>Buy Now</span>
-                </button>
-                <p className="text-center text-xs text-gray-400 mt-2 font-medium">Pay with Mobile Money</p>
-            </div>
-          </div>
-
-           {/* Card 5 */}
-           <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 flex flex-col hover:border-gray-300 transition-all hover:shadow-md">
-            <div className="flex justify-between items-start mb-6">
-                 <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-                    <span className="text-2xl">📻</span>
-                 </div>
-                 <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Media</span>
-            </div>
-
-            <h3 className="text-xl font-bold mb-2 text-gray-900">Radio Jingles</h3>
-            <p className="text-gray-500 text-sm mb-6 flex-grow leading-relaxed">Professional audio branding for radio that captures your business essence.</p>
-            
-            <div className="pt-4 border-t border-gray-50 mt-auto">
-                <div className="mb-4">
-                   <span className="text-sm text-gray-500">From </span>
-                   <span className="text-xl font-bold text-gray-900">150,000 TZS</span>
-                </div>
-                <button className="w-full bg-black text-white py-3 rounded-lg font-medium flex items-center justify-center space-x-2 hover:bg-gray-800 transition">
-                  <ShoppingCart size={16} />
-                  <span>Buy Now</span>
-                </button>
-                <p className="text-center text-xs text-gray-400 mt-2 font-medium">Pay with Mobile Money</p>
-            </div>
-          </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Custom Services Section */}
         <div className="text-center mb-16">
             <div className="inline-block px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-600 uppercase tracking-wider mb-4">Custom Solutions</div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">Tailored to Your Needs</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">Complex projects that require custom pricing and consultation</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">{servicesContent.customSolutionsTitle}</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-lg">{servicesContent.customSolutionsDescription}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">

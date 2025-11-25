@@ -1,22 +1,84 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, FileText, Headphones, CreditCard, User as UserIcon, LogOut, MessageSquare, Plus, Trash2, Package, Check, Edit2, X, Download, Paperclip, Send } from 'lucide-react';
-import { useAuth, Service, User, Invoice, Ticket } from '../context/AuthContext';
+import { LayoutDashboard, ShoppingCart, FileText, Headphones, CreditCard, User as UserIcon, LogOut, MessageSquare, Plus, Trash2, Package, Check, Edit2, X, Download, Paperclip, Send, Settings, Save, Palette, Share2, Globe, Radio, Zap, LayoutTemplate, MessageCircle, Briefcase, Image as ImageIcon } from 'lucide-react';
+import { useAuth, Service, User, Invoice, Ticket, Testimonial, PortfolioItem } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { jsPDF } from "jspdf";
+import { PaymentModal } from '../components/PaymentModal';
+
+// Icon Map for rendering
+const iconMap: any = {
+  Palette: <Palette size={24} />,
+  Share2: <Share2 size={24} />,
+  Globe: <Globe size={24} />,
+  Radio: <Radio size={24} />,
+  Zap: <Zap size={24} />,
+  '🆕': <span className="text-xl">🆕</span>
+};
+
+interface ServiceCardProps {
+  service: Service;
+  isAdmin: boolean;
+  onDelete: (id: string) => void;
+  onEdit: (service: Service) => void;
+  onBuy: (service: Service) => void;
+}
+
+const ServiceCard: React.FC<ServiceCardProps> = ({ service, isAdmin, onDelete, onEdit, onBuy }) => (
+    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition relative text-gray-900 flex flex-col h-full">
+        <div className="flex justify-between items-start mb-4">
+            <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-gray-900">
+                {iconMap[service.icon] || <span className="text-lg">{service.icon}</span>}
+            </div>
+            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-medium">{service.tag}</span>
+        </div>
+        <h4 className="font-bold mb-1 text-gray-900">{service.title}</h4>
+        <p className="text-xs text-gray-500 mb-4 flex-grow">{service.description}</p>
+        <div className="font-bold text-lg mb-4 text-gray-900">{service.price}</div>
+        
+        {isAdmin ? (
+            <div className="mt-auto flex gap-2">
+                <button 
+                    onClick={() => onEdit(service)}
+                    className="flex-1 bg-gray-100 text-gray-900 py-2 rounded text-sm flex items-center justify-center gap-2 hover:bg-gray-200 font-medium">
+                    <Edit2 size={14} /> Edit
+                </button>
+                <button 
+                    onClick={() => onDelete(service.id)}
+                    className="flex-1 bg-red-50 text-red-600 py-2 rounded text-sm flex items-center justify-center gap-2 hover:bg-red-100 font-medium">
+                    <Trash2 size={14} /> Delete
+                </button>
+            </div>
+        ) : (
+            <button 
+                onClick={() => onBuy(service)}
+                className="w-full bg-[#111111] text-white py-2 rounded text-sm flex items-center justify-center gap-2 hover:bg-gray-800 font-medium mt-auto">
+                <ShoppingCart size={14} /> Buy Now
+            </button>
+        )}
+    </div>
+);
 
 const ClientPortal: React.FC = () => {
   const { 
     user, logout, 
-    services, addService, deleteService, 
+    services, addService, updateService, deleteService, 
     orders, placeOrder,
     users, addUser, updateUser, deleteUser,
     invoices, createInvoice, payInvoice,
-    tickets, createTicket, replyToTicket, closeTicket
+    tickets, createTicket, replyToTicket, closeTicket,
+    settings, updateSettings,
+    homepageContent, updateHomepageContent,
+    servicesContent, updateServicesContent,
+    clientsContent, updateClientsContent,
+    aboutContent, updateAboutContent,
+    testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
+    portfolioItems, addPortfolioItem, updatePortfolioItem, deletePortfolioItem
   } = useAuth();
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAddingService, setIsAddingService] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   
@@ -24,6 +86,10 @@ const ClientPortal: React.FC = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   
+  // Payment State
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentItem, setPaymentItem] = useState<{ type: 'service' | 'invoice', data: Service | Invoice } | null>(null);
+
   const navigate = useNavigate();
 
   // Redirect if not logged in
@@ -38,6 +104,40 @@ const ClientPortal: React.FC = () => {
 
   const isAdmin = user.role === 'admin';
 
+  // --- Payment Handlers ---
+  const parseAmount = (priceString: string): number => {
+    const cleanString = priceString.replace(/[^0-9]/g, '');
+    return parseInt(cleanString) || 0;
+  };
+
+  const initServicePayment = (service: Service) => {
+    setPaymentItem({ type: 'service', data: service });
+    setIsPaymentModalOpen(true);
+  };
+
+  const initInvoicePayment = (invoice: Invoice) => {
+    setPaymentItem({ type: 'invoice', data: invoice });
+    setIsPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (gateway: string, transactionId: string) => {
+    if (!paymentItem) return;
+
+    if (paymentItem.type === 'service') {
+        const service = paymentItem.data as Service;
+        // Immediate active status upon payment
+        placeOrder(service, 'Active');
+        alert(`Payment successful via ${gateway}! Order #${transactionId.slice(-6)} created and activated.`);
+    } else if (paymentItem.type === 'invoice') {
+        const invoice = paymentItem.data as Invoice;
+        payInvoice(invoice.id);
+        alert(`Payment successful via ${gateway}! Invoice #${invoice.id.slice(-4)} marked as paid.`);
+    }
+    
+    setPaymentItem(null);
+  };
+
+
   // --- PDF Generation ---
   const generatePDF = (invoice: Invoice) => {
     const doc = new jsPDF();
@@ -47,19 +147,24 @@ const ClientPortal: React.FC = () => {
     doc.setFillColor(249, 250, 251); // Gray 50
     doc.rect(0, 0, pageWidth, 40, 'F');
 
-    // Logo / Brand
+    // Logo / Brand (Using Dynamic Settings)
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(17, 24, 39);
-    doc.text("RIC", 20, 25);
+    
+    // Simple split for name if needed, or just display full name
+    const companyNameParts = settings.companyName.split(' ');
+    doc.text(companyNameParts[0], 20, 25);
     doc.setFont("helvetica", "normal");
-    doc.text("Tanzania", 38, 25); 
+    if(companyNameParts.length > 1) {
+        doc.text(companyNameParts.slice(1).join(' '), 20 + (doc.getTextWidth(companyNameParts[0]) + 2), 25);
+    }
 
-    // Company Details
+    // Company Details (Dynamic)
     doc.setFontSize(9);
     doc.setTextColor(107, 114, 128);
-    doc.text("Digital Agency", 20, 32);
-    doc.text("Dar es Salaam, Tanzania", 20, 36);
+    doc.text(settings.companyEmail, 20, 32);
+    doc.text(settings.companyAddress, 20, 36);
 
     // Title
     doc.setFontSize(16);
@@ -153,89 +258,86 @@ const ClientPortal: React.FC = () => {
     doc.setFontSize(14);
     doc.text(invoice.status.toUpperCase(), 20, y);
 
-    // Footer
+    // Footer (Dynamic)
     const footerY = doc.internal.pageSize.getHeight() - 20;
     doc.setFontSize(8);
     doc.setTextColor(156, 163, 175);
-    doc.text("RIC Tanzania | info@rictanzania.co.tz | Dar es Salaam", pageWidth / 2, footerY, { align: 'center' });
+    doc.text(`${settings.companyName} | ${settings.companyEmail} | ${settings.companyAddress}`, pageWidth / 2, footerY, { align: 'center' });
 
     doc.save(`invoice-${invoice.id}.pdf`);
   };
 
   // --- Components for different views ---
 
-  const AddServiceForm = () => {
-    const [title, setTitle] = useState('');
-    const [price, setPrice] = useState('');
-    const [tag, setTag] = useState('');
+  const ServiceUpsertForm = () => {
+    const [title, setTitle] = useState(editingService?.title || '');
+    const [price, setPrice] = useState(editingService?.price || '');
+    const [tag, setTag] = useState(editingService?.tag || '');
+    const [description, setDescription] = useState(editingService?.description || '');
+    const [icon, setIcon] = useState(editingService?.icon || 'Palette');
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addService({
-            title,
-            price,
-            tag,
-            icon: '🆕',
-            description: 'New service added by admin'
-        });
+        if (editingService) {
+            updateService(editingService.id, { title, price, tag, icon, description });
+        } else {
+            addService({ title, price, tag, icon, description });
+        }
         setIsAddingService(false);
+        setEditingService(null);
     };
+
+    const handleCancel = () => {
+        setIsAddingService(false);
+        setEditingService(null);
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm mb-8 text-gray-900">
-            <h3 className="font-bold mb-4 text-gray-900">Add New Service</h3>
+            <h3 className="font-bold mb-4 text-gray-900">{editingService ? 'Edit Service' : 'Add New Service'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Title</label>
-                  <input type="text" placeholder="Service Title" className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-black focus:outline-none" value={title} onChange={e => setTitle(e.target.value)} required />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Service Title</label>
+                    <input type="text" placeholder="Service Title" className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-black focus:outline-none" value={title} onChange={e => setTitle(e.target.value)} required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                    <input type="text" placeholder="Price (e.g., 500,000 TZS)" className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-black focus:outline-none" value={price} onChange={e => setPrice(e.target.value)} required />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
-                  <input type="text" placeholder="Price (e.g., 500,000 TZS)" className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-black focus:outline-none" value={price} onChange={e => setPrice(e.target.value)} required />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tag</label>
+                    <input type="text" placeholder="Tag (e.g., Design)" className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-black focus:outline-none" value={tag} onChange={e => setTag(e.target.value)} required />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                    <select className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900" value={icon} onChange={e => setIcon(e.target.value)}>
+                      <option value="Palette">Palette (Design)</option>
+                      <option value="Share2">Share (Social)</option>
+                      <option value="Globe">Globe (Web)</option>
+                      <option value="Zap">Zap (Ads)</option>
+                      <option value="Radio">Radio (Media)</option>
+                      <option value="🆕">New (Default)</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tag</label>
-                  <input type="text" placeholder="Tag (e.g., Design)" className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-black focus:outline-none" value={tag} onChange={e => setTag(e.target.value)} required />
+                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                   <textarea placeholder="Describe the service..." className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 focus:ring-2 focus:ring-black focus:outline-none h-20" value={description} onChange={e => setDescription(e.target.value)} required />
                 </div>
+
                 <div className="flex gap-2 pt-2">
-                    <Button type="submit">Save Service</Button>
-                    <Button variant="outline" type="button" onClick={() => setIsAddingService(false)}>Cancel</Button>
+                    <Button type="submit">{editingService ? 'Update Service' : 'Save Service'}</Button>
+                    <Button variant="outline" type="button" onClick={handleCancel}>Cancel</Button>
                 </div>
             </form>
         </div>
     );
   };
-
-  const ServiceCard = ({ service }: { service: Service }) => (
-    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition relative text-gray-900">
-        <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center text-lg">{service.icon}</div>
-            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-medium">{service.tag}</span>
-        </div>
-        <h4 className="font-bold mb-1 text-gray-900">{service.title}</h4>
-        <p className="text-xs text-gray-500 mb-4">{service.description}</p>
-        <div className="font-bold text-lg mb-4 text-gray-900">{service.price}</div>
-        
-        {isAdmin ? (
-            <button 
-                onClick={() => deleteService(service.id)}
-                className="w-full bg-red-50 text-red-600 py-2 rounded text-sm flex items-center justify-center gap-2 hover:bg-red-100 font-medium">
-                <Trash2 size={14} /> Delete Service
-            </button>
-        ) : (
-            <button 
-                onClick={() => {
-                    if(confirm(`Confirm order for ${service.title}?`)) {
-                        placeOrder(service);
-                        alert("Order placed successfully!");
-                    }
-                }}
-                className="w-full bg-[#111111] text-white py-2 rounded text-sm flex items-center justify-center gap-2 hover:bg-gray-800 font-medium">
-                <ShoppingCart size={14} /> Buy Now
-            </button>
-        )}
-    </div>
-  );
 
   const OrdersList = () => {
     const displayedOrders = isAdmin ? orders : orders.filter(o => o.userId === user.id);
@@ -314,10 +416,10 @@ const ClientPortal: React.FC = () => {
                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                      <h4 className="font-bold mb-4">Create New User</h4>
                      <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <input type="text" placeholder="Full Name" className="p-2 border rounded bg-white" value={name} onChange={e=>setName(e.target.value)} required/>
-                         <input type="email" placeholder="Email" className="p-2 border rounded bg-white" value={email} onChange={e=>setEmail(e.target.value)} required/>
-                         <input type="password" placeholder="Password" className="p-2 border rounded bg-white" value={password} onChange={e=>setPassword(e.target.value)} required/>
-                         <select className="p-2 border rounded bg-white" value={role} onChange={e=>setRole(e.target.value as any)}>
+                         <input type="text" placeholder="Full Name" className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" value={name} onChange={e=>setName(e.target.value)} required/>
+                         <input type="email" placeholder="Email" className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" value={email} onChange={e=>setEmail(e.target.value)} required/>
+                         <input type="password" placeholder="Password" className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" value={password} onChange={e=>setPassword(e.target.value)} required/>
+                         <select className="p-2 border border-gray-300 rounded bg-white text-gray-900" value={role} onChange={e=>setRole(e.target.value as any)}>
                              <option value="client">Client</option>
                              <option value="admin">Admin</option>
                          </select>
@@ -350,7 +452,7 @@ const ClientPortal: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                     {u.id !== 'admin' && ( // Prevent deleting main admin
-                                        <button onClick={() => deleteService(u.id) /* Typo protection: logic for delete user */} className="text-red-500 hover:text-red-700"
+                                        <button onClick={() => deleteUser(u.id)} className="text-red-500 hover:text-red-700"
                                             onMouseDown={() => { if(confirm('Delete user?')) deleteUser(u.id); }}>
                                             <Trash2 size={16} />
                                         </button>
@@ -406,16 +508,16 @@ const ClientPortal: React.FC = () => {
                     <form onSubmit={handleCreateInvoice} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
                             <label className="block text-sm font-medium mb-1">Select User</label>
-                            <select className="w-full p-2 border rounded bg-white text-gray-900" value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} required>
+                            <select className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900" value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)} required>
                                 <option value="">-- Choose Client --</option>
                                 {users.filter(u => u.role === 'client').map(u => (
                                     <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
                                 ))}
                             </select>
                         </div>
-                        <input type="text" placeholder="Description / Title" className="p-2 border rounded bg-white text-gray-900" value={title} onChange={e=>setTitle(e.target.value)} required/>
-                        <input type="text" placeholder="Amount (e.g. 500,000 TZS)" className="p-2 border rounded bg-white text-gray-900" value={amount} onChange={e=>setAmount(e.target.value)} required/>
-                        <input type="date" className="p-2 border rounded bg-white text-gray-900" value={dueDate} onChange={e=>setDueDate(e.target.value)} required/>
+                        <input type="text" placeholder="Description / Title" className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" value={title} onChange={e=>setTitle(e.target.value)} required/>
+                        <input type="text" placeholder="Amount (e.g. 500,000 TZS)" className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" value={amount} onChange={e=>setAmount(e.target.value)} required/>
+                        <input type="date" className="p-2 border border-gray-300 rounded bg-white text-gray-900" value={dueDate} onChange={e=>setDueDate(e.target.value)} required/>
                         <div className="md:col-span-2">
                             <Button type="submit" className="w-full">Issue Invoice</Button>
                         </div>
@@ -463,9 +565,7 @@ const ClientPortal: React.FC = () => {
 
                                         {!isAdmin && inv.status === 'Pending' && (
                                             <button 
-                                                onClick={() => {
-                                                    if(confirm("Pay this invoice now?")) payInvoice(inv.id);
-                                                }}
+                                                onClick={() => initInvoicePayment(inv)}
                                                 className="bg-black text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-800">
                                                 Pay Now
                                             </button>
@@ -567,7 +667,7 @@ const ClientPortal: React.FC = () => {
                         <div className="flex gap-2">
                             <div className="flex-1">
                                 <input 
-                                    className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-black" 
+                                    className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 text-sm focus:outline-none focus:border-black placeholder:text-gray-400" 
                                     placeholder="Type your reply..."
                                     value={newMessage}
                                     onChange={e => setNewMessage(e.target.value)}
@@ -612,7 +712,7 @@ const ClientPortal: React.FC = () => {
                     <form onSubmit={handleCreateTicket} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium mb-1">Related Service</label>
-                            <select className="w-full p-2 border rounded bg-white text-gray-900" value={serviceId} onChange={e => setServiceId(e.target.value)} required>
+                            <select className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900" value={serviceId} onChange={e => setServiceId(e.target.value)} required>
                                 <option value="">Select a service...</option>
                                 <option value="others">Others / General Inquiry</option>
                                 {services.map(s => (
@@ -622,11 +722,11 @@ const ClientPortal: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Subject</label>
-                            <input type="text" className="w-full p-2 border rounded bg-white" value={newSubject} onChange={e => setNewSubject(e.target.value)} required placeholder="Brief summary of the issue"/>
+                            <input type="text" className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" value={newSubject} onChange={e => setNewSubject(e.target.value)} required placeholder="Brief summary of the issue"/>
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Message</label>
-                            <textarea className="w-full p-2 border rounded bg-white h-32" value={newMessage} onChange={e => setNewMessage(e.target.value)} required placeholder="Describe your issue in detail..."/>
+                            <textarea className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-32 placeholder:text-gray-400" value={newMessage} onChange={e => setNewMessage(e.target.value)} required placeholder="Describe your issue in detail..."/>
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">Attachment (Image)</label>
@@ -667,9 +767,617 @@ const ClientPortal: React.FC = () => {
     );
   };
 
+  const TestimonialsManager = () => {
+      const [quote, setQuote] = useState('');
+      const [name, setName] = useState('');
+      const [role, setRole] = useState('');
+      const [company, setCompany] = useState('');
+      const [tag, setTag] = useState('');
+      const [avatarFile, setAvatarFile] = useState<File | null>(null);
+      const [isAdding, setIsAdding] = useState(false);
+      const [editingId, setEditingId] = useState<string | null>(null);
+
+      // Helper for base64
+      const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = error => reject(error);
+        });
+      };
+
+      const handleSave = async (e: React.FormEvent) => {
+          e.preventDefault();
+          
+          let avatarBase64 = undefined;
+          if (avatarFile) {
+              try {
+                  avatarBase64 = await fileToBase64(avatarFile);
+              } catch(e) {
+                  console.error("Error processing image", e);
+              }
+          }
+
+          if (editingId) {
+             updateTestimonial(editingId, { 
+                quote, name, role, company, tag, 
+                ...(avatarBase64 ? { avatar: avatarBase64 } : {}) 
+             });
+          } else {
+             addTestimonial({ quote, name, role, company, tag, avatar: avatarBase64 });
+          }
+          
+          resetForm();
+      };
+
+      const handleEdit = (t: Testimonial) => {
+        setQuote(t.quote);
+        setName(t.name);
+        setRole(t.role);
+        setCompany(t.company);
+        setTag(t.tag);
+        setEditingId(t.id);
+        setIsAdding(true);
+      };
+
+      const resetForm = () => {
+        setIsAdding(false);
+        setEditingId(null);
+        setQuote(''); setName(''); setRole(''); setCompany(''); setTag(''); setAvatarFile(null);
+      };
+
+      return (
+          <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-900">Manage Testimonials</h3>
+                  <Button onClick={() => { if(isAdding) resetForm(); else setIsAdding(true); }} className="flex items-center gap-2">
+                      {isAdding ? <X size={16}/> : <Plus size={16}/>}
+                      {isAdding ? "Cancel" : "Add Testimonial"}
+                  </Button>
+              </div>
+
+              {isAdding && (
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                      <h4 className="font-bold mb-4">{editingId ? 'Edit Testimonial' : 'Add Testimonial'}</h4>
+                      <form onSubmit={handleSave} className="space-y-4">
+                          <textarea className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Quote" value={quote} onChange={e => setQuote(e.target.value)} required />
+                          <div className="grid grid-cols-2 gap-4">
+                              <input className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Name" value={name} onChange={e => setName(e.target.value)} required />
+                              <input className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Role" value={role} onChange={e => setRole(e.target.value)} required />
+                              <input className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Company" value={company} onChange={e => setCompany(e.target.value)} required />
+                              <input className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Tag (e.g. Technology)" value={tag} onChange={e => setTag(e.target.value)} required />
+                          </div>
+                           <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Client Avatar (Optional)</label>
+                                <div className="flex items-center gap-2">
+                                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                        <ImageIcon size={16} />
+                                        {avatarFile ? avatarFile.name : "Upload New Image"}
+                                        <input type="file" className="hidden" accept="image/*" onChange={e => setAvatarFile(e.target.files?.[0] || null)} />
+                                    </label>
+                                    {avatarFile && <button type="button" onClick={() => setAvatarFile(null)} className="text-red-500 text-sm">Remove</button>}
+                                </div>
+                            </div>
+                          <Button type="submit">{editingId ? 'Update' : 'Save'}</Button>
+                      </form>
+                  </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {testimonials.map(t => (
+                      <div key={t.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative group">
+                          <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                            <button onClick={() => handleEdit(t)} className="text-blue-500 hover:bg-blue-50 p-1 rounded">
+                                <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => deleteTestimonial(t.id)} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                                <Trash2 size={16} />
+                            </button>
+                          </div>
+                          <div className="flex gap-4 mb-3">
+                              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                  {t.avatar ? (
+                                      <img src={t.avatar} alt={t.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                      <span className="font-bold text-gray-400">{t.name.split(' ').map(n=>n[0]).join('')}</span>
+                                  )}
+                              </div>
+                              <div>
+                                  <div className="font-bold text-sm">{t.name}</div>
+                                  <div className="text-xs text-gray-500">{t.role}, {t.company}</div>
+                              </div>
+                          </div>
+                          <p className="text-sm italic mb-2">"{t.quote}"</p>
+                          <div className="mt-2 text-xs font-bold bg-gray-100 inline-block px-2 py-1 rounded text-gray-600">{t.tag}</div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      );
+  };
+
+  const PortfolioManager = () => {
+      const [title, setTitle] = useState('');
+      const [desc, setDesc] = useState('');
+      const [category, setCategory] = useState<'Technology'|'Design'|'Media'>('Technology');
+      const [tags, setTags] = useState('');
+      const [imageUrl, setImageUrl] = useState('');
+      const [isAdding, setIsAdding] = useState(false);
+      const [editingId, setEditingId] = useState<string | null>(null);
+
+      const handleSave = (e: React.FormEvent) => {
+          e.preventDefault();
+          const tagsArray = tags.split(',').map(t => t.trim());
+          
+          if (editingId) {
+             updatePortfolioItem(editingId, {
+                title, description: desc, category, tags: tagsArray, imageUrl
+             });
+          } else {
+             addPortfolioItem({
+                title, description: desc, category, tags: tagsArray, imageUrl
+             });
+          }
+          resetForm();
+      };
+
+      const handleEdit = (p: PortfolioItem) => {
+          setTitle(p.title);
+          setDesc(p.description);
+          setCategory(p.category);
+          setTags(p.tags.join(', '));
+          setImageUrl(p.imageUrl);
+          setEditingId(p.id);
+          setIsAdding(true);
+      };
+
+      const resetForm = () => {
+          setIsAdding(false);
+          setEditingId(null);
+          setTitle(''); setDesc(''); setTags(''); setImageUrl('');
+      };
+
+      return (
+          <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold text-gray-900">Manage Portfolio</h3>
+                  <Button onClick={() => { if(isAdding) resetForm(); else setIsAdding(true); }} className="flex items-center gap-2">
+                      {isAdding ? <X size={16}/> : <Plus size={16}/>}
+                      {isAdding ? "Cancel" : "Add Project"}
+                  </Button>
+              </div>
+
+              {isAdding && (
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                      <h4 className="font-bold mb-4">{editingId ? 'Edit Project' : 'Add Project'}</h4>
+                      <form onSubmit={handleSave} className="space-y-4">
+                          <input className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Project Title" value={title} onChange={e => setTitle(e.target.value)} required />
+                          <textarea className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Description" value={desc} onChange={e => setDesc(e.target.value)} required />
+                          <div className="grid grid-cols-2 gap-4">
+                              <select className="p-2 border border-gray-300 rounded bg-white text-gray-900" value={category} onChange={e => setCategory(e.target.value as any)}>
+                                  <option value="Technology">Technology</option>
+                                  <option value="Design">Design</option>
+                                  <option value="Media">Media</option>
+                              </select>
+                              <input className="p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Tags (comma separated)" value={tags} onChange={e => setTags(e.target.value)} required />
+                          </div>
+                          <input className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 placeholder:text-gray-400" placeholder="Image URL" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
+                          <Button type="submit">{editingId ? 'Update Project' : 'Save Project'}</Button>
+                      </form>
+                  </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {portfolioItems.map(p => (
+                      <div key={p.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden relative group">
+                          <div className="absolute top-2 right-2 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition">
+                            <button onClick={() => handleEdit(p)} className="bg-white/90 text-blue-500 hover:bg-blue-50 p-1 rounded shadow-sm">
+                                <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => deletePortfolioItem(p.id)} className="bg-white/90 text-red-500 hover:bg-red-50 p-1 rounded shadow-sm">
+                                <Trash2 size={16} />
+                            </button>
+                          </div>
+                          <div className="h-32 bg-gray-100">
+                              <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="p-4">
+                              <div className="text-xs font-bold text-blue-600 mb-1">{p.category}</div>
+                              <h4 className="font-bold text-sm mb-1">{p.title}</h4>
+                              <p className="text-xs text-gray-500 mb-2 line-clamp-2">{p.description}</p>
+                              <div className="flex flex-wrap gap-1">
+                                  {p.tags.map(t => (
+                                      <span key={t} className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded">{t}</span>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      );
+  };
+
+  const SettingsView = () => {
+    const [formData, setFormData] = useState(settings);
+    const [msg, setMsg] = useState('');
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormData({...formData, [e.target.name]: e.target.value});
+    };
+
+    const handleSave = () => {
+        updateSettings(formData);
+        setMsg('Settings saved successfully!');
+        setTimeout(() => setMsg(''), 3000);
+    };
+
+    return (
+        <div className="space-y-8">
+            <h3 className="text-xl font-bold text-gray-900">System Settings</h3>
+            
+            {msg && <div className="bg-green-100 text-green-700 p-3 rounded mb-4">{msg}</div>}
+
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-4 text-gray-900 flex items-center gap-2">
+                    <UserIcon size={18}/> Company Information
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                        <input name="companyName" value={formData.companyName} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                        <input name="companyEmail" value={formData.companyEmail} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input name="companyPhone" value={formData.companyPhone} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                        <input name="companyAddress" value={formData.companyAddress} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-4 text-gray-900 flex items-center gap-2">
+                    <CreditCard size={18}/> Payment Gateways
+                </h4>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Flutterwave Public Key</label>
+                        <input name="flutterwavePublicKey" value={formData.flutterwavePublicKey} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 font-mono text-sm"/>
+                        <p className="text-xs text-gray-500 mt-1">Used for card and mobile money payments.</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">PayPal Client ID</label>
+                        <input name="paypalClientId" value={formData.paypalClientId} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 font-mono text-sm"/>
+                        <p className="text-xs text-gray-500 mt-1">Used for PayPal buttons (Sandbox/Live).</p>
+                    </div>
+                </div>
+            </div>
+
+            <Button onClick={handleSave} className="flex items-center gap-2">
+                <Save size={16}/> Save Settings
+            </Button>
+        </div>
+    );
+  };
+
+  const CMSView = () => {
+    const { 
+        homepageContent, updateHomepageContent, 
+        servicesContent, updateServicesContent,
+        clientsContent, updateClientsContent,
+        aboutContent, updateAboutContent
+    } = useAuth();
+    
+    const [homeData, setHomeData] = useState(homepageContent);
+    const [servicesData, setServicesData] = useState(servicesContent);
+    const [clientsData, setClientsData] = useState(clientsContent);
+    const [aboutData, setAboutData] = useState(aboutContent);
+
+    const [msg, setMsg] = useState('');
+
+    const handleHomeChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setHomeData({ ...homeData, [e.target.name]: e.target.value });
+    };
+
+    const handleServicesChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setServicesData({ ...servicesData, [e.target.name]: e.target.value });
+    };
+
+    const handleClientsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setClientsData({ ...clientsData, [e.target.name]: e.target.value });
+    };
+
+    const handleAboutChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setAboutData({ ...aboutData, [e.target.name]: e.target.value });
+    };
+
+    const handleSave = () => {
+        updateHomepageContent(homeData);
+        updateServicesContent(servicesData);
+        updateClientsContent(clientsData);
+        updateAboutContent(aboutData);
+        setMsg('Content saved successfully!');
+        setTimeout(() => setMsg(''), 3000);
+    };
+
+    return (
+        <div className="space-y-8">
+             <div className="flex justify-between items-center">
+                <h3 className="text-xl font-bold text-gray-900">CMS - Website Content</h3>
+             </div>
+
+             {msg && <div className="bg-green-100 text-green-700 p-3 rounded mb-4">{msg}</div>}
+
+             {/* Homepage Section */}
+             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-6 text-gray-900 border-b pb-2">Homepage Content</h4>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Title</label>
+                        <input name="heroTitle" value={homeData.heroTitle} onChange={handleHomeChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Subtitle</label>
+                        <textarea name="heroSubtitle" value={homeData.heroSubtitle} onChange={handleHomeChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-24"/>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Services Title</label>
+                        <input name="servicesTitle" value={homeData.servicesTitle} onChange={handleHomeChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">CTA Title</label>
+                        <input name="ctaTitle" value={homeData.ctaTitle} onChange={handleHomeChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                </div>
+             </div>
+
+             {/* Services Page Section */}
+             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-6 text-gray-900 border-b pb-2">Services Page Content</h4>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Title</label>
+                        <input name="heroTitle" value={servicesData.heroTitle} onChange={handleServicesChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Description</label>
+                        <textarea name="heroDescription" value={servicesData.heroDescription} onChange={handleServicesChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-24"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Custom Solutions Title</label>
+                        <input name="customSolutionsTitle" value={servicesData.customSolutionsTitle} onChange={handleServicesChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Custom Solutions Description</label>
+                        <textarea name="customSolutionsDescription" value={servicesData.customSolutionsDescription} onChange={handleServicesChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-20"/>
+                    </div>
+                </div>
+             </div>
+
+             {/* Clients Page Section */}
+             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-6 text-gray-900 border-b pb-2">Clients Page Content</h4>
+                
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Hero Section</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Title</label>
+                        <textarea name="heroTitle" value={clientsData.heroTitle} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-20"/>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Image URL</label>
+                        <input name="heroImage" value={clientsData.heroImage} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Tags (Comma separated)</label>
+                        <input name="heroTags" value={clientsData.heroTags} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Top Stats Strip</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><input name="stat1Title" placeholder="Stat 1 Title" value={clientsData.stat1Title} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><input name="stat1Subtitle" placeholder="Stat 1 Subtitle" value={clientsData.stat1Subtitle} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><input name="stat2Title" placeholder="Stat 2 Title" value={clientsData.stat2Title} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><input name="stat2Subtitle" placeholder="Stat 2 Subtitle" value={clientsData.stat2Subtitle} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><input name="stat3Title" placeholder="Stat 3 Title" value={clientsData.stat3Title} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><input name="stat3Subtitle" placeholder="Stat 3 Subtitle" value={clientsData.stat3Subtitle} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><input name="stat4Title" placeholder="Stat 4 Title" value={clientsData.stat4Title} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><input name="stat4Subtitle" placeholder="Stat 4 Subtitle" value={clientsData.stat4Subtitle} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Featured Project 1 (Safari)</h5>
+                <div className="space-y-4 mb-6">
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                         <input name="project1Title" value={clientsData.project1Title} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                         <textarea name="project1Description" value={clientsData.project1Description} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-24"/>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                            <input name="project1Image" value={clientsData.project1Image} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
+                            <input name="project1Link" value={clientsData.project1Link} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Middle Stats Bar</h5>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                     <div className="space-y-2"><input name="midStat1Value" value={clientsData.midStat1Value} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/><input name="midStat1Label" value={clientsData.midStat1Label} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 text-xs"/></div>
+                     <div className="space-y-2"><input name="midStat2Value" value={clientsData.midStat2Value} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/><input name="midStat2Label" value={clientsData.midStat2Label} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 text-xs"/></div>
+                     <div className="space-y-2"><input name="midStat3Value" value={clientsData.midStat3Value} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/><input name="midStat3Label" value={clientsData.midStat3Label} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 text-xs"/></div>
+                     <div className="space-y-2"><input name="midStat4Value" value={clientsData.midStat4Value} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/><input name="midStat4Label" value={clientsData.midStat4Label} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 text-xs"/></div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Featured Project 2 (Workplackers)</h5>
+                <div className="space-y-4">
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                         <input name="project2Title" value={clientsData.project2Title} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                         <textarea name="project2Description" value={clientsData.project2Description} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-24"/>
+                    </div>
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Bullet Points (Newline separated)</label>
+                         <textarea name="project2Bullets" value={clientsData.project2Bullets} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-24"/>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
+                            <input name="project2Image" value={clientsData.project2Image} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Button Link</label>
+                            <input name="project2Link" value={clientsData.project2Link} onChange={handleClientsChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                        </div>
+                    </div>
+                </div>
+
+             </div>
+
+             {/* About Page Section */}
+             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-6 text-gray-900 border-b pb-2">About Page Content</h4>
+                
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Hero Section</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><label className="block text-xs mb-1">Line 1</label><input name="heroTitleLine1" value={aboutData.heroTitleLine1} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Line 2</label><input name="heroTitleLine2" value={aboutData.heroTitleLine2} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Line 3</label><input name="heroTitleLine3" value={aboutData.heroTitleLine3} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Line 4</label><input name="heroTitleLine4" value={aboutData.heroTitleLine4} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Line 5 (Prefix)</label><input name="heroTitleLine5" value={aboutData.heroTitleLine5} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Line 5 (Highlighted Location)</label><input name="heroTitleLocation" value={aboutData.heroTitleLocation} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hero Image URL</label>
+                        <input name="heroImage" value={aboutData.heroImage} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                </div>
+
+                <div className="mb-6">
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Marquee Tags (Comma separated)</label>
+                     <input name="marqueeTags" value={aboutData.marqueeTags} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Introduction</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><label className="block text-xs mb-1">Label</label><input name="introLabel" value={aboutData.introLabel} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Title</label><input name="introTitle" value={aboutData.introTitle} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div className="md:col-span-2">
+                        <label className="block text-xs mb-1">Description</label>
+                        <textarea name="introDescription" value={aboutData.introDescription} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900 h-20"/>
+                    </div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Intro Stats (3 Columns)</h5>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                     <div><label className="block text-xs mb-1">Stat 1 Label</label><input name="introStat1Label" value={aboutData.introStat1Label} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     <div><label className="block text-xs mb-1">Stat 1 Value</label><input name="introStat1Value" value={aboutData.introStat1Value} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     
+                     <div><label className="block text-xs mb-1">Stat 2 Label</label><input name="introStat2Label" value={aboutData.introStat2Label} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     <div><label className="block text-xs mb-1">Stat 2 Value</label><input name="introStat2Value" value={aboutData.introStat2Value} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     
+                     <div><label className="block text-xs mb-1">Stat 3 Label</label><input name="introStat3Label" value={aboutData.introStat3Label} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     <div><label className="block text-xs mb-1">Stat 3 Value</label><input name="introStat3Value" value={aboutData.introStat3Value} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Big Stats Grid</h5>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                     <div><label className="block text-xs mb-1">Stat 1 Value</label><input name="bigStat1Value" value={aboutData.bigStat1Value} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     <div><label className="block text-xs mb-1">Stat 1 Label</label><input name="bigStat1Label" value={aboutData.bigStat1Label} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+
+                     <div><label className="block text-xs mb-1">Stat 2 Value</label><input name="bigStat2Value" value={aboutData.bigStat2Value} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     <div><label className="block text-xs mb-1">Stat 2 Label</label><input name="bigStat2Label" value={aboutData.bigStat2Label} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     
+                     <div><label className="block text-xs mb-1">Stat 3 Value</label><input name="bigStat3Value" value={aboutData.bigStat3Value} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                     <div><label className="block text-xs mb-1">Stat 3 Label</label><input name="bigStat3Label" value={aboutData.bigStat3Label} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Services Section</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><label className="block text-xs mb-1">Main Title</label><input name="servicesTitle" value={aboutData.servicesTitle} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Subtitle</label><input name="servicesSubtitle" value={aboutData.servicesSubtitle} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                </div>
+                <div className="space-y-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input name="service1Title" value={aboutData.service1Title} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 1 Title"/>
+                        <input name="service1Desc" value={aboutData.service1Desc} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 1 Description"/>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input name="service2Title" value={aboutData.service2Title} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 2 Title"/>
+                        <input name="service2Desc" value={aboutData.service2Desc} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 2 Description"/>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input name="service3Title" value={aboutData.service3Title} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 3 Title"/>
+                        <input name="service3Desc" value={aboutData.service3Desc} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 3 Description"/>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <input name="service4Title" value={aboutData.service4Title} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 4 Title"/>
+                        <input name="service4Desc" value={aboutData.service4Desc} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="Service 4 Description"/>
+                    </div>
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">Recognition / Awards</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div><label className="block text-xs mb-1">Main Title</label><input name="recognitionTitle" value={aboutData.recognitionTitle} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                    <div><label className="block text-xs mb-1">Subtitle</label><input name="recognitionSubtitle" value={aboutData.recognitionSubtitle} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/></div>
+                </div>
+                <div className="space-y-2 mb-6">
+                    {[1,2,3,4].map(num => (
+                        <div key={num} className="grid grid-cols-3 gap-2">
+                            <input name={`award${num}Title`} value={(aboutData as any)[`award${num}Title`]} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900 text-xs" placeholder={`Award ${num} Title`}/>
+                            <input name={`award${num}Category`} value={(aboutData as any)[`award${num}Category`]} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900 text-xs" placeholder={`Category`}/>
+                            <input name={`award${num}Year`} value={(aboutData as any)[`award${num}Year`]} onChange={handleAboutChange} className="p-2 border border-gray-300 rounded bg-white text-gray-900 text-xs" placeholder={`Year`}/>
+                        </div>
+                    ))}
+                </div>
+
+                <h5 className="font-bold text-sm uppercase text-gray-500 mb-4">CTA Section</h5>
+                <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                     <input name="ctaTitle" value={aboutData.ctaTitle} onChange={handleAboutChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                </div>
+
+             </div>
+
+             <Button onClick={handleSave} className="flex items-center gap-2">
+                <Save size={16}/> Save All Content
+            </Button>
+        </div>
+    );
+  };
+
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans text-gray-900">
+      <PaymentModal 
+        isOpen={isPaymentModalOpen}
+        onClose={() => { setIsPaymentModalOpen(false); setPaymentItem(null); }}
+        onSuccess={handlePaymentSuccess}
+        amountTZS={paymentItem ? parseAmount(paymentItem.type === 'service' ? (paymentItem.data as Service).price : (paymentItem.data as Invoice).amount) : 0}
+        email={user.email}
+        name={user.name}
+        title={paymentItem ? (paymentItem.type === 'service' ? 'Service Order' : 'Invoice Payment') : ''}
+        description={paymentItem ? (paymentItem.type === 'service' ? (paymentItem.data as Service).title : `Invoice #${(paymentItem.data as Invoice).id}`) : ''}
+        flutterwavePublicKey={settings.flutterwavePublicKey}
+        paypalClientId={settings.paypalClientId}
+      />
       
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full z-10 text-gray-900">
@@ -717,6 +1425,22 @@ const ClientPortal: React.FC = () => {
                    <button onClick={() => setActiveTab('users')} className={`w-full flex items-center px-2 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'users' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
                       <UserIcon size={18} className="mr-3" />
                       Manage Users
+                   </button>
+                   <button onClick={() => setActiveTab('cms')} className={`w-full flex items-center px-2 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'cms' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                      <LayoutTemplate size={18} className="mr-3" />
+                      CMS - Pages
+                   </button>
+                   <button onClick={() => setActiveTab('testimonials')} className={`w-full flex items-center px-2 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'testimonials' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                      <MessageCircle size={18} className="mr-3" />
+                      Testimonials
+                   </button>
+                    <button onClick={() => setActiveTab('portfolio')} className={`w-full flex items-center px-2 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'portfolio' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                      <Briefcase size={18} className="mr-3" />
+                      Portfolio
+                   </button>
+                   <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center px-2 py-2.5 rounded-lg text-sm font-medium transition ${activeTab === 'settings' ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
+                      <Settings size={18} className="mr-3" />
+                      Settings
                    </button>
                 </nav>
              </div>
@@ -798,18 +1522,25 @@ const ClientPortal: React.FC = () => {
                             </p>
                         </div>
                         {isAdmin && (
-                            <Button onClick={() => setIsAddingService(true)} className="flex items-center space-x-2">
+                            <Button onClick={() => { setIsAddingService(true); setEditingService(null); }} className="flex items-center space-x-2">
                                 <Plus size={16}/>
                                 <span>Add Service</span>
                             </Button>
                         )}
                     </div>
 
-                    {isAddingService && <AddServiceForm />}
+                    {isAddingService && <ServiceUpsertForm />}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                         {services.map((service) => (
-                            <ServiceCard key={service.id} service={service} />
+                            <ServiceCard 
+                                key={service.id} 
+                                service={service} 
+                                isAdmin={isAdmin}
+                                onDelete={deleteService}
+                                onBuy={initServicePayment}
+                                onEdit={(s) => { setEditingService(s); setIsAddingService(true); }}
+                            />
                         ))}
                     </div>
                 </>
@@ -822,6 +1553,14 @@ const ClientPortal: React.FC = () => {
             {activeTab === 'invoices' && <InvoiceManagement />}
 
             {activeTab === 'support' && <SupportSystem />}
+
+            {activeTab === 'cms' && isAdmin && <CMSView />}
+
+            {activeTab === 'settings' && isAdmin && <SettingsView />}
+
+            {activeTab === 'testimonials' && isAdmin && <TestimonialsManager />}
+            
+            {activeTab === 'portfolio' && isAdmin && <PortfolioManager />}
 
          </div>
       </main>

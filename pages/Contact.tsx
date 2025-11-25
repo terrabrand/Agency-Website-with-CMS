@@ -1,7 +1,10 @@
 import React from 'react';
 import { Phone, Mail, MapPin, MessageSquare, Send } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Contact: React.FC = () => {
+  const { settings } = useAuth();
+
   return (
     <div className="w-full bg-white">
       {/* Header */}
@@ -24,21 +27,21 @@ const Contact: React.FC = () => {
                       <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-600"><Phone size={20}/></div>
                       <div>
                         <div className="font-medium text-sm">Phone</div>
-                        <div className="text-gray-500 text-sm">+255 XXX XXX XXX</div>
+                        <div className="text-gray-500 text-sm">{settings.companyPhone}</div>
                       </div>
                     </div>
                     <div className="flex items-start space-x-4">
                       <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-600"><Mail size={20}/></div>
                       <div>
                         <div className="font-medium text-sm">Email</div>
-                        <div className="text-gray-500 text-sm">info@rictanzania.co.tz</div>
+                        <div className="text-gray-500 text-sm">{settings.companyEmail}</div>
                       </div>
                     </div>
                     <div className="flex items-start space-x-4">
                       <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-600"><MapPin size={20}/></div>
                       <div>
                         <div className="font-medium text-sm">Office</div>
-                        <div className="text-gray-500 text-sm">Dar es Salaam, Tanzania</div>
+                        <div className="text-gray-500 text-sm">{settings.companyAddress}</div>
                       </div>
                     </div>
                     <div className="flex items-start space-x-4">
