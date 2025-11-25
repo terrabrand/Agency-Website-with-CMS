@@ -9,8 +9,10 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login } = useAuth();
+  const { login, settings } = useAuth();
   const navigate = useNavigate();
+
+  const isDark = settings.darkMode || settings.theme === 'modern-dark';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,10 +34,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+    <div className={`min-h-[80vh] flex items-center justify-center px-4 ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+      <div className={`max-w-md w-full rounded-2xl shadow-xl p-8 border ${isDark ? 'bg-neutral-900 border-white/10' : 'bg-white border-gray-100'}`}>
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+          <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Welcome Back</h1>
           <p className="text-gray-500">Sign in to access your dashboard</p>
         </div>
 
@@ -47,7 +49,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Email Address</label>
             <input
               type="email"
               required
@@ -60,8 +62,8 @@ export default function Login() {
 
           <div>
             <div className="flex justify-between items-center mb-2">
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <a href="#" className="text-xs text-gray-500 hover:text-black">Forgot password?</a>
+              <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
+              <a href="#" className={`text-xs ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-black'}`}>Forgot password?</a>
             </div>
             <input
               type="password"
@@ -73,7 +75,7 @@ export default function Login() {
             />
           </div>
 
-          <Button type="submit" className="w-full py-6 text-lg" disabled={isSubmitting}>
+          <Button type="submit" className={`w-full py-6 text-lg ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'}`} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing In...
@@ -86,12 +88,12 @@ export default function Login() {
 
         <div className="mt-8 text-center text-sm text-gray-500">
           Don't have an account?{' '}
-          <Link to="/register" className="font-bold text-gray-900 hover:underline">
+          <Link to="/register" className={`font-bold hover:underline ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Create account
           </Link>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+        <div className={`mt-8 pt-6 border-t text-center ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
              <p className="text-xs text-gray-400 mb-2">Demo Credentials:</p>
              <p className="text-xs text-gray-600 font-mono bg-gray-100 inline-block px-2 py-1 rounded">admin@rictanzania.co.tz / admin123</p>
         </div>

@@ -11,8 +11,10 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register } = useAuth();
+  const { register, settings } = useAuth();
   const navigate = useNavigate();
+
+  const isDark = settings.darkMode || settings.theme === 'modern-dark';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,10 +42,10 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+    <div className={`min-h-[80vh] flex items-center justify-center px-4 py-12 ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
+      <div className={`max-w-md w-full rounded-2xl shadow-xl p-8 border ${isDark ? 'bg-neutral-900 border-white/10' : 'bg-white border-gray-100'}`}>
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create Account</h1>
+          <h1 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Create Account</h1>
           <p className="text-gray-500">Join RIC Tanzania Client Portal</p>
         </div>
 
@@ -55,7 +57,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Full Name</label>
             <input
               type="text"
               required
@@ -67,7 +69,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Email Address</label>
             <input
               type="email"
               required
@@ -79,7 +81,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Password</label>
             <input
               type="password"
               required
@@ -91,7 +93,7 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+            <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Confirm Password</label>
             <input
               type="password"
               required
@@ -103,7 +105,7 @@ export default function Register() {
           </div>
 
           <div className="pt-2">
-            <Button type="submit" className="w-full py-6 text-lg" disabled={isSubmitting}>
+            <Button type="submit" className={`w-full py-6 text-lg ${isDark ? 'bg-white text-black hover:bg-gray-200' : 'bg-black text-white hover:bg-gray-800'}`} disabled={isSubmitting}>
                 {isSubmitting ? (
                 <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Account...
@@ -117,7 +119,7 @@ export default function Register() {
 
         <div className="mt-8 text-center text-sm text-gray-500">
           Already have an account?{' '}
-          <Link to="/login" className="font-bold text-gray-900 hover:underline">
+          <Link to="/login" className={`font-bold hover:underline ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Sign in
           </Link>
         </div>

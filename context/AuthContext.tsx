@@ -68,6 +68,13 @@ export interface SystemSettings {
   companyLogoUrl: string; // For Invoice/UI
   flutterwavePublicKey: string;
   paypalClientId: string;
+  theme: 'default' | 'modern-dark'; // New Theme Setting
+  darkMode: boolean; // Global Dark Mode Toggle
+  
+  // Social Media
+  companyFacebook: string;
+  companyInstagram: string;
+  companyLinkedin: string;
 }
 
 export interface HomepageContent {
@@ -302,7 +309,12 @@ const DEFAULT_SETTINGS: SystemSettings = {
   companyAddress: "Dar es Salaam, Tanzania",
   companyLogoUrl: "https://aistudiocdn.com/react@^19.2.0", // Placeholder if needed
   flutterwavePublicKey: "FLWPUBK_TEST-0887984b83e1ce7a3325b9945ead2ec9-X",
-  paypalClientId: "test" 
+  paypalClientId: "test",
+  theme: 'default',
+  darkMode: false,
+  companyFacebook: "https://facebook.com",
+  companyInstagram: "https://instagram.com",
+  companyLinkedin: "https://linkedin.com"
 };
 
 const INITIAL_HOMEPAGE_CONTENT: HomepageContent = {

@@ -5,28 +5,29 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 
 const Clients: React.FC = () => {
-  const { testimonials, portfolioItems, clientsContent } = useAuth();
+  const { testimonials, portfolioItems, clientsContent, settings } = useAuth();
+  const isDark = settings.darkMode || settings.theme === 'modern-dark';
 
   return (
-    <div className="w-full bg-white text-gray-900 font-sans">
+    <div className={`w-full font-sans transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-white text-gray-900'}`}>
       
       {/* Hero Section - Sarah Ndege */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
         <div className="flex flex-col md:flex-row gap-12 items-center">
           <div className="w-full md:w-1/2 space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-gray-900 whitespace-pre-wrap">
+            <h1 className={`text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight whitespace-pre-wrap ${isDark ? 'text-white' : 'text-gray-900'}`}>
               {clientsContent.heroTitle}
             </h1>
             
             <div className="flex flex-wrap gap-3">
                {clientsContent.heroTags.split(',').map((tag, i) => (
-                  <span key={i} className="px-4 py-1.5 bg-gray-100 text-gray-900 rounded-full text-sm font-bold">{tag.trim()}</span>
+                  <span key={i} className={`px-4 py-1.5 rounded-full text-sm font-bold ${isDark ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-900'}`}>{tag.trim()}</span>
                ))}
             </div>
           </div>
           
           <div className="w-full md:w-1/2 flex justify-center md:justify-end relative">
-             <div className="w-72 h-72 md:w-[450px] md:h-[450px] rounded-full overflow-hidden bg-gray-100 relative z-10">
+             <div className={`w-72 h-72 md:w-[450px] md:h-[450px] rounded-full overflow-hidden relative z-10 ${isDark ? 'bg-neutral-800' : 'bg-gray-100'}`}>
                 <img 
                   src={clientsContent.heroImage} 
                   alt="Hero" 
@@ -61,7 +62,7 @@ const Clients: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Project - Dark Section */}
+      {/* Featured Project - Dark Section (Always Dark) */}
       <section className="bg-[#111111] text-white py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
            <div className="flex flex-col lg:flex-row gap-16 items-center">
@@ -95,23 +96,23 @@ const Clients: React.FC = () => {
       </section>
 
       {/* Stats Bar */}
-      <section className="bg-gray-50 py-16 border-b border-gray-200">
+      <section className={`py-16 border-b ${isDark ? 'bg-neutral-900 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
                <div>
-                  <div className="text-4xl font-bold text-gray-900 mb-1">{clientsContent.midStat1Value}</div>
+                  <div className={`text-4xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{clientsContent.midStat1Value}</div>
                   <div className="text-sm text-gray-500">{clientsContent.midStat1Label}</div>
                </div>
                <div>
-                  <div className="text-4xl font-bold text-gray-900 mb-1">{clientsContent.midStat2Value}</div>
+                  <div className={`text-4xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{clientsContent.midStat2Value}</div>
                   <div className="text-sm text-gray-500">{clientsContent.midStat2Label}</div>
                </div>
                <div>
-                  <div className="text-4xl font-bold text-gray-900 mb-1">{clientsContent.midStat3Value}</div>
+                  <div className={`text-4xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{clientsContent.midStat3Value}</div>
                   <div className="text-sm text-gray-500">{clientsContent.midStat3Label}</div>
                </div>
                <div>
-                  <div className="text-4xl font-bold text-gray-900 mb-1">{clientsContent.midStat4Value}</div>
+                  <div className={`text-4xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{clientsContent.midStat4Value}</div>
                   <div className="text-sm text-gray-500">{clientsContent.midStat4Label}</div>
                </div>
             </div>
@@ -122,30 +123,30 @@ const Clients: React.FC = () => {
       <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
          <div className="flex flex-col-reverse md:flex-row gap-16 items-center">
              <div className="w-full md:w-1/2 space-y-6">
-                 <div className="inline-block px-3 py-1 bg-gray-100 rounded-full text-xs font-bold text-gray-600 uppercase tracking-wider">Case Study</div>
-                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900">{clientsContent.project2Title}</h2>
-                 <div className="flex items-center space-x-1 text-black">
+                 <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${isDark ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-600'}`}>Case Study</div>
+                 <h2 className={`text-3xl md:text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{clientsContent.project2Title}</h2>
+                 <div className={`flex items-center space-x-1 ${isDark ? 'text-white' : 'text-black'}`}>
                     {[1,2,3,4,5].map(i => <Star key={i} size={14} fill="currentColor" />)}
                     <span className="ml-2 text-sm font-medium">5.0</span>
                  </div>
-                 <p className="text-gray-600 leading-relaxed">
+                 <p className={`leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                    {clientsContent.project2Description}
                  </p>
-                 <ul className="space-y-3 text-sm text-gray-600">
+                 <ul className={`space-y-3 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                     {clientsContent.project2Bullets.split('\n').map((bullet, i) => (
                         <li key={i} className="flex items-start gap-2">
-                           <span className="mt-1.5 w-1.5 h-1.5 bg-black rounded-full flex-shrink-0" />
+                           <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${isDark ? 'bg-white' : 'bg-black'}`} />
                            {bullet.trim()}
                         </li>
                     ))}
                  </ul>
-                 <Button variant="outline" className="mt-4 rounded border-gray-300" asChild>
+                 <Button variant="outline" className={`mt-4 rounded ${isDark ? 'bg-transparent border-white text-white hover:bg-white/10' : 'border-gray-300'}`} asChild>
                     <a href={clientsContent.project2Link} target="_blank" rel="noopener noreferrer">
                         View Project Details <ArrowRight size={16} className="ml-2" />
                     </a>
                  </Button>
              </div>
-             <div className="w-full md:w-1/2 bg-gray-50 rounded-2xl p-8 lg:p-12">
+             <div className={`w-full md:w-1/2 rounded-2xl p-8 lg:p-12 ${isDark ? 'bg-neutral-900' : 'bg-gray-50'}`}>
                 <img 
                    src={clientsContent.project2Image} 
                    alt="Case Study" 
@@ -156,17 +157,17 @@ const Clients: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-gray-50 py-24">
+      <section className={`py-24 ${isDark ? 'bg-neutral-900' : 'bg-gray-50'}`}>
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center mb-16 text-gray-900">What Our Clients Say</h2>
+            <h2 className={`text-3xl font-bold text-center mb-16 ${isDark ? 'text-white' : 'text-gray-900'}`}>What Our Clients Say</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {testimonials.map((t) => (
-                    <div key={t.id} className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 flex flex-col h-full">
+                    <div key={t.id} className={`p-8 rounded-xl shadow-sm border flex flex-col h-full ${isDark ? 'bg-black border-white/10' : 'bg-white border-gray-100'}`}>
                         <div className="text-4xl text-gray-300 font-serif mb-4">”</div>
-                        <p className="text-gray-600 mb-6 flex-grow text-sm leading-relaxed">{t.quote}</p>
+                        <p className={`mb-6 flex-grow text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t.quote}</p>
                         <div className="flex items-center gap-4 mt-auto">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 text-xs overflow-hidden">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs overflow-hidden ${isDark ? 'bg-white/10 text-gray-300' : 'bg-gray-200 text-gray-500'}`}>
                                 {t.avatar ? (
                                     <img src={t.avatar} alt={t.name} className="w-full h-full object-cover"/>
                                 ) : (
@@ -174,12 +175,12 @@ const Clients: React.FC = () => {
                                 )}
                             </div>
                             <div>
-                                <div className="font-bold text-sm text-gray-900">{t.name}</div>
+                                <div className={`font-bold text-sm ${isDark ? 'text-white' : 'text-gray-900'}`}>{t.name}</div>
                                 <div className="text-xs text-gray-500">{t.company}</div>
                             </div>
                         </div>
-                        <div className="mt-4 pt-4 border-t border-gray-50">
-                            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 bg-gray-50 px-2 py-1 rounded">{t.tag}</span>
+                        <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/10' : 'border-gray-50'}`}>
+                            <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded ${isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-50 text-gray-400'}`}>{t.tag}</span>
                         </div>
                     </div>
                 ))}
@@ -190,7 +191,7 @@ const Clients: React.FC = () => {
       {/* Portfolio Section */}
       <section className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-2 text-gray-900">Portfolio</h2>
+            <h2 className={`text-3xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Portfolio</h2>
             <p className="text-gray-500">Recognition & Accomplishments</p>
          </div>
 
@@ -202,21 +203,21 @@ const Clients: React.FC = () => {
              return (
                  <div key={category} className="mb-20">
                     <div className="flex justify-between items-end mb-8">
-                        <h3 className="text-xl font-bold text-gray-900">{category}</h3>
-                        <span className="text-sm text-gray-500 border border-gray-200 rounded-full px-3 py-1">{items.length} Projects</span>
+                        <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{category}</h3>
+                        <span className={`text-sm border rounded-full px-3 py-1 ${isDark ? 'text-gray-400 border-white/20' : 'text-gray-500 border-gray-200'}`}>{items.length} Projects</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {items.map((p) => (
                             <div key={p.id} className="group">
-                                <div className="bg-gray-100 rounded-xl overflow-hidden mb-4 h-64">
+                                <div className={`rounded-xl overflow-hidden mb-4 h-64 ${isDark ? 'bg-neutral-900' : 'bg-gray-100'}`}>
                                     <img src={p.imageUrl} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 </div>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {p.tags.map((tag, t) => (
-                                        <span key={t} className="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded">{tag}</span>
+                                        <span key={t} className={`text-xs font-bold px-2 py-1 rounded ${isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-600'}`}>{tag}</span>
                                     ))}
                                 </div>
-                                <h4 className="font-bold text-lg mb-2 text-gray-900">{p.title}</h4>
+                                <h4 className={`font-bold text-lg mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{p.title}</h4>
                                 <p className="text-sm text-gray-500">{p.description}</p>
                             </div>
                         ))}

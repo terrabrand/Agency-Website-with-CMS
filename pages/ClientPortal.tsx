@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, FileText, Headphones, CreditCard, User as UserIcon, LogOut, MessageSquare, Plus, Trash2, Package, Check, Edit2, X, Download, Paperclip, Send, Settings, Save, Palette, Share2, Globe, Radio, Zap, LayoutTemplate, MessageCircle, Briefcase, Image as ImageIcon } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, FileText, Headphones, CreditCard, User as UserIcon, LogOut, MessageSquare, Plus, Trash2, Package, Check, Edit2, X, Download, Paperclip, Send, Settings, Save, Palette, Share2, Globe, Radio, Zap, LayoutTemplate, MessageCircle, Briefcase, Image as ImageIcon, Moon } from 'lucide-react';
 import { useAuth, Service, User, Invoice, Ticket, Testimonial, PortfolioItem } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { jsPDF } from "jspdf";
@@ -1003,8 +1003,9 @@ const ClientPortal: React.FC = () => {
     const [formData, setFormData] = useState(settings);
     const [msg, setMsg] = useState('');
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({...formData, [e.target.name]: e.target.value});
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const val = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
+        setFormData({...formData, [e.target.name]: val});
     };
 
     const handleSave = () => {
@@ -1018,6 +1019,38 @@ const ClientPortal: React.FC = () => {
             <h3 className="text-xl font-bold text-gray-900">System Settings</h3>
             
             {msg && <div className="bg-green-100 text-green-700 p-3 rounded mb-4">{msg}</div>}
+
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-4 text-gray-900 flex items-center gap-2">
+                    <Palette size={18}/> Appearance
+                </h4>
+                <div className="space-y-4">
+                    <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Website Theme</label>
+                         <select name="theme" value={formData.theme || 'default'} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900">
+                             <option value="default">Classic</option>
+                             <option value="modern-dark">Modern Dark (Wen Launch)</option>
+                         </select>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2">
+                        <input 
+                            type="checkbox" 
+                            id="darkMode"
+                            name="darkMode" 
+                            checked={formData.darkMode} 
+                            onChange={handleChange}
+                            className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black"
+                        />
+                        <label htmlFor="darkMode" className="text-sm font-medium text-gray-700 flex items-center gap-2 cursor-pointer">
+                            <Moon size={16} /> Enable Dark Mode Globally
+                        </label>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                        Checking this ensures all pages use the dark color scheme, even if the Classic theme is selected. 
+                        The Modern Dark theme enables this by default.
+                    </p>
+                </div>
+            </div>
 
             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
                 <h4 className="font-bold mb-4 text-gray-900 flex items-center gap-2">
@@ -1039,6 +1072,27 @@ const ClientPortal: React.FC = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                         <input name="companyAddress" value={formData.companyAddress} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900"/>
+                    </div>
+                </div>
+            </div>
+
+            {/* Social Media Settings */}
+             <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <h4 className="font-bold mb-4 text-gray-900 flex items-center gap-2">
+                    <Share2 size={18}/> Social Media Links
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Facebook URL</label>
+                        <input name="companyFacebook" value={formData.companyFacebook || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="https://facebook.com/..." />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Instagram URL</label>
+                        <input name="companyInstagram" value={formData.companyInstagram || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="https://instagram.com/..." />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+                        <input name="companyLinkedin" value={formData.companyLinkedin || ''} onChange={handleChange} className="w-full p-2 border border-gray-300 rounded bg-white text-gray-900" placeholder="https://linkedin.com/in/..." />
                     </div>
                 </div>
             </div>
