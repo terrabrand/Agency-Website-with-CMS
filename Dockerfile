@@ -25,7 +25,7 @@ RUN npm run build
 FROM node:22.12.0-alpine AS production
 
 # Set the working directory for the server
-WORKDIR /app
+WORKDIR /
 
 # Install 'serve', a simple, production-ready static file server
 RUN npm install -g serve
@@ -36,7 +36,7 @@ COPY --from=builder /app/dist ./dist
 # The default port for Coolify and many hosting platforms is 3000, 
 # but we'll use 8080 as a common default for static servers. 
 # Make sure this port matches what you configure in Coolify if necessary.
-EXPOSE 8080
+EXPOSE 3000
 
 # Command to run the static server
 # The '-s' flag means serve the 'dist' folder and fall back to index.html for SPAs (History API routing)
