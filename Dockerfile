@@ -3,8 +3,7 @@
 FROM node:22.12.0-alpine AS builder
 
 # Set the working directory for all subsequent commands
-WORKDIR /app
-
+WORKDIR /
 # Copy package.json and package-lock.json (or yarn.lock/pnpm-lock.yaml)
 # Copying these first allows Docker to cache the npm install step unless they change.
 COPY package*.json ./
@@ -41,4 +40,4 @@ EXPOSE 8080
 
 # Command to run the static server
 # The '-s' flag means serve the 'dist' folder and fall back to index.html for SPAs (History API routing)
-CMD [ "serve", "-s", "dist", "-l", "8080" ]
+CMD [ "serve", "-s", "dist", "-l", "3000" ]
